@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SamboTL — панель сервера</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; font-family: "Segoe UI", system-ui, sans-serif;
+    background: linear-gradient(160deg, #0b1220, #0f172a 60%);
+    color: #e2e8f0; padding: 24px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  .brand { font-size: 1.5rem; font-weight: 700; letter-spacing: .3px; }
+  .brand span { color: #94a3b8; font-weight: 400; }
+  .card {
+    background: #1e293b; border: 1px solid #334155; border-radius: 14px;
+    padding: 20px; margin-top: 16px; box-shadow: 0 12px 30px rgba(2,6,23,.4);
+  }
+  h2 { margin: 0 0 12px; font-size: 1.1rem; }
+  label { display: block; font-size: .83rem; color: #94a3b8; margin: 12px 0 5px; }
+  input, select {
+    width: 100%; padding: 10px 13px; background: #0b1220; color: #e2e8f0;
+    border: 1px solid #334155; border-radius: 9px; font-size: .98rem;
+  }
+  input:focus, select:focus { outline: 2px solid #2563eb; border-color: #2563eb; }
+  button {
+    font: inherit; cursor: pointer; border: 1px solid #334155; background: #24334a;
+    color: #e2e8f0; padding: 11px 16px; border-radius: 9px; transition: filter .15s;
+  }
+  button:hover { filter: brightness(1.15); }
+  button.primary { background: #2563eb; border-color: #1d4ed8; font-weight: 600; }
+  button.ok { background: #16a34a; border-color: #15803d; font-weight: 600; }
+  button.danger { background: #dc2626; border-color: #991b1b; }
+  button.ghost { background: transparent; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .row > div { flex: 1; min-width: 150px; }
+  .muted { color: #94a3b8; }
+  .status { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: #64748b; }
+  .dot.on { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
+  .list { border: 1px solid #334155; border-radius: 12px; overflow: hidden; }
+  .list-row {
+    display: flex; align-items: center; gap: 12px; padding: 12px 15px;
+    border-bottom: 1px solid #334155; background: #16202f; cursor: pointer;
+  }
+  .list-row:last-child { border-bottom: 0; }
+  .list-row:hover { background: #1e293b; }
+  .list-row.active { background: rgba(37,99,235,.18); }
+  .list-row .grow { flex: 1; min-width: 0; }
+  .list-row .name { font-weight: 600; }
+  .badge {
+    display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .74rem;
+    border: 1px solid #334155; color: #94a3b8;
+  }
+  .badge.active { color: #bbf7d0; border-color: #166534; background: rgba(22,101,52,.25); }
+  .err { color: #fecaca; background: rgba(153,27,27,.2); border: 1px solid #991b1b; padding: 10px 14px; border-radius: 9px; margin-top: 12px; }
+  .okbox { color: #bbf7d0; background: rgba(22,101,52,.2); border: 1px solid #166534; padding: 10px 14px; border-radius: 9px; margin-top: 12px; }
+  .creds {
+    background: #0b1220; border: 1px solid #334155; border-radius: 9px;
+    padding: 12px 15px; margin-top: 10px; line-height: 1.7;
+  }
+  .creds code { color: #fde68a; font-size: 1.05rem; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">SamboTL <span>· панель сервера</span></div>
+
+    <div class="card">
+      <div class="status">
+        <span class="dot" id="status-dot"></span>
+        <span id="status-text">Сервер остановлен</span>
+      </div>
+      <div class="row" style="margin-top: 12px">
+        <div style="flex:0 0 120px">
+          <label for="port">Порт</label>
+          <input id="port" value="8000" />
+        </div>
+        <div>
+          <label for="host">Адрес приёма</label>
+          <input id="host" value="0.0.0.0" />
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button class="ok" id="start-btn" style="width:100%">Запустить сервер</button>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button class="danger" id="stop-btn" style="width:100%" disabled>Остановить</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top: 12px">
+        <button class="ghost" id="open-app-btn" disabled>Открыть экраны</button>
+        <button class="ghost" id="open-admin-btn" disabled>Открыть админку</button>
+      </div>
+      <div id="run-info" class="creds hidden">
+        Сервер запущен. Клиенты в локальной сети открывают:<br>
+        <code id="lan-url"></code><br>
+        <span class="muted">Пароль доступа для экранов:</span> <code id="access-password"></code><br>
+        <span class="muted">Админка (логин / пароль):</span> <code id="admin-creds"></code>
+      </div>
+      <div id="server-error" class="err hidden"></div>
+    </div>
+
+    <div class="card">
+      <h2>Турниры</h2>
+      <div class="list" id="tournament-list">
+        <div class="list-row muted">Загрузка…</div>
+      </div>
+      <div class="row" style="margin-top: 12px">
+        <button id="refresh-btn">Обновить список</button>
+        <button id="show-create-btn">Новый турнир</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Доступ к активному турниру</h2>
+      <div id="active-creds" class="creds">
+        <span class="muted">Выберите турнир в списке выше.</span>
+      </div>
+      <div class="row" style="margin-top: 12px">
+        <div>
+          <label for="new-access">Новый пароль экранов</label>
+          <input id="new-access" placeholder="оставьте пустым, чтобы не менять" />
+        </div>
+        <div>
+          <label for="new-admin">Новый пароль админки</label>
+          <input id="new-admin" placeholder="оставьте пустым, чтобы не менять" />
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button class="primary" id="save-passwords-btn" style="width:100%">Применить</button>
+        </div>
+      </div>
+      <div id="password-error" class="err hidden"></div>
+      <div id="password-ok" class="okbox hidden"></div>
+    </div>
+
+    <div class="card hidden" id="create-card">
+      <h2>Новый турнир</h2>
+      <div class="row">
+        <div style="flex:2">
+          <label for="t-name">Название</label>
+          <input id="t-name" placeholder="Кубок города 2026" />
+        </div>
+        <div>
+          <label for="t-system">Система</label>
+          <select id="t-system">
+            <option value="olympic">Олимпийская</option>
+            <option value="six_errors">До 6 ошибок</option>
+          </select>
+        </div>
+        <div>
+          <label for="t-audience">Аудитория</label>
+          <select id="t-audience">
+            <option value="adults">Взрослые</option>
+            <option value="children">Дети</option>
+            <option value="mixed">Смешанный</option>
+          </select>
+        </div>
+        <div style="flex:0 0 90px">
+          <label for="t-mats">Ковров</label>
+          <input id="t-mats" type="number" min="1" max="10" value="4" />
+        </div>
+      </div>
+      <div class="row" style="margin-top: 12px">
+        <div>
+          <label for="t-password">Пароль доступа к экранам</label>
+          <input id="t-password" placeholder="например, 1234" />
+        </div>
+        <div>
+          <label for="t-admin">Пароль админки</label>
+          <input id="t-admin" value="admin1234" />
+        </div>
+      </div>
+      <div class="row" style="margin-top: 14px">
+        <button class="primary" id="create-btn">Создать турнир</button>
+        <button class="ghost" id="cancel-create-btn">Отмена</button>
+      </div>
+      <div id="create-error" class="err hidden"></div>
+      <div id="create-ok" class="okbox hidden"></div>
+    </div>
+  </div>
+
+  <script>
+    const api = window.pywebview.api;
+    let currentPassword = "";
+    let currentAdmin = "admin1234";
+    let activeSlug = "";
+    let activeAccess = "";
+    let activeAdminPass = "";
+
+    const statusDot = document.getElementById("status-dot");
+    const statusText = document.getElementById("status-text");
+    const runInfo = document.getElementById("run-info");
+    const lanUrl = document.getElementById("lan-url");
+    const accessPassword = document.getElementById("access-password");
+    const adminCreds = document.getElementById("admin-creds");
+    const activeCreds = document.getElementById("active-creds");
+
+    function setStatus(running) {
+      statusDot.classList.toggle("on", running);
+      statusText.textContent = running ? "Сервер запущен" : "Сервер остановлен";
+      document.getElementById("start-btn").disabled = running;
+      document.getElementById("stop-btn").disabled = !running;
+      document.getElementById("open-app-btn").disabled = !running;
+      document.getElementById("open-admin-btn").disabled = !running;
+      if (!running) runInfo.classList.add("hidden");
+    }
+
+    function renderActiveCreds() {
+      if (!activeSlug) {
+        activeCreds.innerHTML = '<span class="muted">Выберите турнир в списке выше.</span>';
+        return;
+      }
+      activeCreds.innerHTML =
+        "<b>" + currentActiveName + "</b><br>" +
+        '<span class="muted">Пароль доступа к экранам:</span> <code>' +
+        (activeAccess || "(не сохранён)") + "</code><br>" +
+        '<span class="muted">Админка:</span> логин <code>admin</code>, пароль <code>' +
+        (activeAdminPass || "(не сохранён)") + "</code>";
+    }
+
+    let currentActiveName = "";
+
+    async function refreshTournaments() {
+      const list = await api.list_tournaments();
+      const container = document.getElementById("tournament-list");
+      container.innerHTML = "";
+      if (!list.length) {
+        container.innerHTML = '<div class="list-row muted">Турниров нет — создайте первый</div>';
+        activeSlug = "";
+        renderActiveCreds();
+        return;
+      }
+      for (const t of list) {
+        const row = document.createElement("div");
+        row.className = "list-row" + (t.active ? " active" : "");
+        const sysLabel = t.system === "olympic" ? "олимп." : "до 6 ош.";
+        const aud = { adults: "взрослые", children: "дети", mixed: "смеш." }[t.audience] || t.audience;
+        row.innerHTML =
+          '<div class="grow"><div class="name">' + t.name + '</div>' +
+          '<div class="muted" style="font-size:.82rem">' + sysLabel + ' · ' + aud +
+          ' · ковров ' + t.mats + '</div></div>' +
+          (t.active ? '<span class="badge active">активный</span>' : '');
+        row.onclick = () => selectTournament(t.slug);
+        container.appendChild(row);
+
+        if (t.active) {
+          activeSlug = t.slug;
+          currentActiveName = t.name;
+          activeAccess = t.access_password || "";
+          activeAdminPass = t.admin_password || "";
+        }
+      }
+      renderActiveCreds();
+    }
+
+    async function selectTournament(slug) {
+      const r = await api.select_tournament(slug);
+      if (r && r.ok) {
+        document.getElementById("server-error").classList.add("hidden");
+        await refreshTournaments();
+        const s = await api.server_status();
+        setStatus(s.running);
+      }
+    }
+
+    document.getElementById("start-btn").addEventListener("click", async () => {
+      const errBox = document.getElementById("server-error");
+      errBox.classList.add("hidden");
+      const port = document.getElementById("port").value;
+      const host = document.getElementById("host").value;
+      const r = await api.start_server(port, host);
+      if (!r.ok) {
+        errBox.textContent = r.error;
+        errBox.classList.remove("hidden");
+        return;
+      }
+      runInfo.classList.remove("hidden");
+      lanUrl.textContent = "http://" + r.lan_ip + ":" + r.port + "/app/";
+      accessPassword.textContent = activeAccess || "(не сохранён)";
+      adminCreds.textContent = "admin / " + (activeAdminPass || "(не сохранён)");
+      setStatus(true);
+    });
+
+    document.getElementById("stop-btn").addEventListener("click", async () => {
+      await api.stop_server();
+      setStatus(false);
+    });
+
+    document.getElementById("open-app-btn").addEventListener("click", () => api.open_browser("/app/"));
+    document.getElementById("open-admin-btn").addEventListener("click", () => api.open_admin());
+    document.getElementById("refresh-btn").addEventListener("click", refreshTournaments);
+
+    document.getElementById("show-create-btn").addEventListener("click", () => {
+      document.getElementById("create-card").classList.remove("hidden");
+    });
+    document.getElementById("cancel-create-btn").addEventListener("click", () => {
+      document.getElementById("create-card").classList.add("hidden");
+    });
+
+    document.getElementById("create-btn").addEventListener("click", async () => {
+      const errBox = document.getElementById("create-error");
+      const okBox = document.getElementById("create-ok");
+      errBox.classList.add("hidden");
+      okBox.classList.add("hidden");
+      currentPassword = document.getElementById("t-password").value;
+      currentAdmin = document.getElementById("t-admin").value || "admin1234";
+      const r = await api.create_tournament(
+        document.getElementById("t-name").value,
+        document.getElementById("t-system").value,
+        document.getElementById("t-audience").value,
+        document.getElementById("t-mats").value,
+        currentPassword,
+        currentAdmin
+      );
+      if (!r.ok) {
+        errBox.textContent = r.error;
+        errBox.classList.remove("hidden");
+        return;
+      }
+      okBox.innerHTML =
+        "Турнир создан и выбран активным.<br>" +
+        "Пароль доступа к экранам: <b>" + (currentPassword || "—") + "</b><br>" +
+        "Админка: логин <b>admin</b>, пароль <b>" + currentAdmin + "</b>";
+      okBox.classList.remove("hidden");
+      document.getElementById("create-card").classList.add("hidden");
+      await refreshTournaments();
+    });
+
+    document.getElementById("save-passwords-btn").addEventListener("click", async () => {
+      const errBox = document.getElementById("password-error");
+      const okBox = document.getElementById("password-ok");
+      errBox.classList.add("hidden");
+      okBox.classList.add("hidden");
+
+      if (!activeSlug) {
+        errBox.textContent = "Сначала выберите турнир";
+        errBox.classList.remove("hidden");
+        return;
+      }
+
+      const newAccess = document.getElementById("new-access").value;
+      const newAdmin = document.getElementById("new-admin").value;
+      let messages = [];
+
+      if (newAccess) {
+        const r = await api.set_access_password(activeSlug, newAccess);
+        if (!r.ok) {
+          errBox.textContent = r.error || "Не удалось изменить пароль экранов";
+          errBox.classList.remove("hidden");
+          return;
+        }
+        messages.push("пароль экранов обновлён");
+      }
+      if (newAdmin) {
+        const r = await api.set_admin_password(activeSlug, newAdmin);
+        if (!r.ok) {
+          errBox.textContent = r.error || "Не удалось изменить пароль админки";
+          errBox.classList.remove("hidden");
+          return;
+        }
+        messages.push("пароль админки обновлён");
+      }
+
+      document.getElementById("new-access").value = "";
+      document.getElementById("new-admin").value = "";
+      await refreshTournaments();
+      okBox.textContent = messages.length
+        ? "Готово: " + messages.join(", ") + "."
+        : "Ничего не изменено.";
+      okBox.classList.remove("hidden");
+    });
+
+    setStatus(false);
+    refreshTournaments();
+    setInterval(async () => {
+      const s = await api.server_status();
+      if (!s.running) setStatus(false);
+    }, 3000);
+  </script>
+</body>
+</html>

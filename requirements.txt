@@ -1,0 +1,9 @@
+# SamboTL — Tournament Manager for Sambo. Offline-first, LAN deployment.
+Django==5.1.15
+django-unfold==0.96.0
+djangorestframework==3.17.2
+channels[daphne]==4.3.2
+django-cors-headers==4.9.0
+whitenoise==6.12.0
+openpyxl==3.1.5
+python-docx==1.2.0

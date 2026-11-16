@@ -1,0 +1,38 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# --- Django ---
+*.log
+db.sqlite3
+staticfiles/
+
+# --- SamboTL runtime data (per-tournament databases, media, backups) ---
+data/*.sqlite3
+data/*.json
+data/tournaments/
+data/media/
+data/backups/
+data/reports/
+data/samples/
+!data/.gitkeep
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+Thumbs.db
+desktop.ini
+
+# --- Frontend (Vue SPA) ---
+frontend/node_modules/
+frontend/dist/
+static/spa/
+
+# --- Build artefacts ---
+build/
+dist/
+*.spec.bak
+data/server_credentials.json

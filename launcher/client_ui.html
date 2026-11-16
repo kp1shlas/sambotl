@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SamboTL — рабочее место</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; font-family: "Segoe UI", system-ui, sans-serif;
+    background: linear-gradient(160deg, #0b1220, #0f172a 60%);
+    color: #e2e8f0; display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .panel { width: min(620px, 100%); }
+  .brand { font-size: 1.6rem; font-weight: 700; letter-spacing: .3px; }
+  .brand span { color: #94a3b8; font-weight: 400; }
+  .card {
+    background: #1e293b; border: 1px solid #334155; border-radius: 14px;
+    padding: 22px; margin-top: 16px; box-shadow: 0 12px 30px rgba(2,6,23,.4);
+  }
+  label { display: block; font-size: .85rem; color: #94a3b8; margin: 14px 0 6px; }
+  input {
+    width: 100%; padding: 11px 14px; background: #0b1220; color: #e2e8f0;
+    border: 1px solid #334155; border-radius: 10px; font-size: 1rem;
+  }
+  input:focus { outline: 2px solid #2563eb; border-color: #2563eb; }
+  button {
+    font: inherit; cursor: pointer; border: 1px solid #334155; background: #24334a;
+    color: #e2e8f0; padding: 12px 18px; border-radius: 10px; transition: filter .15s;
+  }
+  button:hover { filter: brightness(1.15); }
+  button.primary { background: #2563eb; border-color: #1d4ed8; font-weight: 600; width: 100%; margin-top: 18px; }
+  button.ghost { background: transparent; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 14px; }
+  .grid button { text-align: left; min-height: 84px; }
+  .grid .title { font-weight: 600; display: block; }
+  .grid .desc { color: #94a3b8; font-size: .82rem; display: block; margin-top: 4px; }
+  .err { color: #fecaca; background: rgba(153,27,27,.2); border: 1px solid #991b1b; padding: 10px 14px; border-radius: 10px; margin-top: 12px; }
+  .ok { color: #bbf7d0; background: rgba(22,101,52,.2); border: 1px solid #166534; padding: 10px 14px; border-radius: 10px; margin-top: 12px; }
+  .hidden { display: none; }
+  .muted { color: #94a3b8; }
+  .row { display: flex; align-items: center; gap: 10px; }
+</style>
+</head>
+<body>
+  <div class="panel">
+    <div class="brand">SamboTL <span>· рабочее место</span></div>
+
+    <div class="card" id="connect-card">
+      <label for="server">Адрес сервера</label>
+      <input id="server" placeholder="например, 192.168.1.10:8000" value="127.0.0.1:8000" />
+
+      <label for="password">Пароль турнира</label>
+      <input id="password" type="password" placeholder="пароль доступа" />
+
+      <div id="connect-error" class="err hidden"></div>
+      <button class="primary" id="connect-btn">Подключиться</button>
+    </div>
+
+    <div class="card hidden" id="screens-card">
+      <div class="row">
+        <div style="flex:1">
+          <div class="muted" style="font-size:.85rem">Подключено к турниру</div>
+          <div id="tournament-name" style="font-weight:600; font-size:1.1rem"></div>
+        </div>
+        <button class="ghost" id="disconnect-btn">Отключить</button>
+      </div>
+
+      <div class="grid">
+        <button data-route="weighing"><span class="title">Взвешивание</span><span class="desc">Текущий вес, отметки, поиск</span></button>
+        <button data-route="draw"><span class="title">Жеребьёвка</span><span class="desc">Сетки, стратегия, предпросмотр</span></button>
+        <button data-route="referee"><span class="title">Судейство</span><span class="desc">Очки, замечания, победитель</span></button>
+        <button data-route="scoreboard"><span class="title">Табло (ТВ)</span><span class="desc">Таймер и борцы на второй экран</span></button>
+        <button data-route="schedule"><span class="title">Расписание</span><span class="desc">Очередь схваток по коврам</span></button>
+        <button data-route="reports"><span class="title">Отчёты</span><span class="desc">Протоколы в Word / Excel</span></button>
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <button class="ghost" id="admin-btn" style="flex:1">Открыть админку сервера</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const api = window.pywebview.api;
+
+    const connectCard = document.getElementById("connect-card");
+    const screensCard = document.getElementById("screens-card");
+    const connectError = document.getElementById("connect-error");
+    const tournamentName = document.getElementById("tournament-name");
+
+    function showError(msg) {
+      connectError.textContent = msg || "";
+      connectError.classList.toggle("hidden", !msg);
+    }
+
+    document.getElementById("connect-btn").addEventListener("click", async () => {
+      showError("");
+      const server = document.getElementById("server").value;
+      const password = document.getElementById("password").value;
+      const result = await api.connect(server, password);
+      if (!result.ok) {
+        showError(result.error);
+        return;
+      }
+      tournamentName.textContent = result.tournament || "турнир";
+      connectCard.classList.add("hidden");
+      screensCard.classList.remove("hidden");
+    });
+
+    document.getElementById("disconnect-btn").addEventListener("click", () => {
+      connectCard.classList.remove("hidden");
+      screensCard.classList.add("hidden");
+    });
+
+    document.querySelectorAll("button[data-route]").forEach((button) => {
+      button.addEventListener("click", () => api.open_screen(button.dataset.route));
+    });
+
+    document.getElementById("admin-btn").addEventListener("click", () => api.open_admin());
+  </script>
+</body>
+</html>
